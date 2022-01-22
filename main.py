@@ -65,7 +65,7 @@ def callback_hander(call):
         group_id = call.message.json["chat"]["id"]
         catagorey = call.data
         if not header:
-            sheet.update('A1:E1', [["user_id", "username", "first_ame", "group_id", "category"]])
+            sheet.update('A1:E1', [["user_id", "username", "first_name", "group_id", "category"]])
             sheet.format('A1:F1', {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"})
             header = True
         next_row = next_available_row(sheet)
