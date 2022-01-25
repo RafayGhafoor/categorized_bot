@@ -18,7 +18,8 @@ gc = gspread.service_account()
 sh = gc.open_by_key("1oMGsisgYxW-6_m9xawhOgqPz3QxaCR23X_yYQRnoRyo")
 sheet = sh.get_worksheet(0)
 header = False
-catagorey_sheet = sh.get_worksheet(1)
+category_sheet = sh.get_worksheet(1)
+CATEGORY_LAST_UPDATED_TIME = None
 # options = catagorey_sheet.get_all_values()
 # options = [item for sublist in options for item in sublist] # to make flat list
 
@@ -51,10 +52,23 @@ def draw_keyboard(options):
 
 @bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"])
 def handle_post(message):
-    options = catagorey_sheet.get_all_values()
-    options = [item for sublist in options for item in sublist] # to make flat list
+    global CATEGORY_LAST_UPDATED_TIME
+    is_updated = False
 
-    bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(options))
+    if CATEGORY_LAST_UPDATED_TIME is None:
+        CATEGORY_LAST_UPDATED_TIME = category_sheet.lastUpdateTime
+        is_updated = True
+
+    elif CATEGORY_LAST_UPDATED_TIME  != category_sheet.lastUpdateTime:
+        CATEGORY_LAST_UPDATED_TIME = category_sheet.lastUpdateTime  
+        is_updated = True
+
+    if is_updated:
+        options = category_sheet.get_all_values()
+        options = [item for sublist in options for item in sublist] # to make flat list
+       
+    
+        bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(options))
 
 
 @bot.callback_query_handler(func=lambda call: True)
