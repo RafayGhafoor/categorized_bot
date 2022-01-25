@@ -3,25 +3,16 @@ import telebot
 import json
 from telebot import types
 
-
-def get_config():
-    with open("config.json", "r") as f:
-        return json.loads(f.read())
-
-
-config = get_config()
-token = config["token"]
+token = "5161683680:AAFdI8X7ETiekHdvLoRFjuXU6VyWUd6Vwhk"
 
 bot = telebot.TeleBot(token)
 
-gc = gspread.service_account()
+gc = gspread.service_account("service_account.json")
 sh = gc.open_by_key("1oMGsisgYxW-6_m9xawhOgqPz3QxaCR23X_yYQRnoRyo")
 sheet = sh.get_worksheet(0)
 header = False
 category_sheet = sh.get_worksheet(1)
 CATEGORY_LAST_UPDATED_TIME = None
-# options = catagorey_sheet.get_all_values()
-# options = [item for sublist in options for item in sublist] # to make flat list
 
 def next_available_row(worksheet):
     str_list = list(filter(None, worksheet.col_values(1)))
@@ -50,17 +41,17 @@ def draw_keyboard(options):
 
 
 
-@bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"])
+@bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"], chat_types=["supergroup"])
 def handle_post(message):
     global CATEGORY_LAST_UPDATED_TIME
     is_updated = False
 
     if CATEGORY_LAST_UPDATED_TIME is None:
-        CATEGORY_LAST_UPDATED_TIME = category_sheet.lastUpdateTime
+        CATEGORY_LAST_UPDATED_TIME = sh.lastUpdateTime
         is_updated = True
 
-    elif CATEGORY_LAST_UPDATED_TIME  != category_sheet.lastUpdateTime:
-        CATEGORY_LAST_UPDATED_TIME = category_sheet.lastUpdateTime  
+    elif CATEGORY_LAST_UPDATED_TIME  != sh.lastUpdateTime:
+        CATEGORY_LAST_UPDATED_TIME = sh.lastUpdateTime  
         is_updated = True
 
     if is_updated:
