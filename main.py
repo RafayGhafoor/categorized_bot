@@ -15,11 +15,12 @@ token = config["token"]
 bot = telebot.TeleBot(token)
 
 gc = gspread.service_account()
-sh = gc.open_by_key("1yMsfNza-JlYPx20kQWNHuqH882Rq56bNJL2rnQO8xBM")
+sh = gc.open_by_key("1oMGsisgYxW-6_m9xawhOgqPz3QxaCR23X_yYQRnoRyo")
 sheet = sh.get_worksheet(0)
 header = False
-
-catagory_options = "A B C D E F G H I".split()
+catagorey_sheet = sh.get_worksheet(1)
+# options = catagorey_sheet.get_all_values()
+# options = [item for sublist in options for item in sublist] # to make flat list
 
 def next_available_row(worksheet):
     str_list = list(filter(None, worksheet.col_values(1)))
@@ -36,22 +37,24 @@ def draw_keyboard(options):
             markup.row(cmds[index], cmds[index+1], cmds[index+2])
 
         except IndexError:
-            markup.row(cmds[index])
+            try:
+                markup.row(cmds[index], cmds[index+1])
+
+            except IndexError:
+                markup.row(cmds[index])
 
         index += 3
 
     return markup
 
 
-# @bot.message_handler(content_types=["text", "photo"])
-# @bot.channel_post_handler(func=lambda message:True,content_types=['video','text','photo','animation', "sticker"])
 
 @bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"])
 def handle_post(message):
-    bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(catagory_options))
+    options = catagorey_sheet.get_all_values()
+    options = [item for sublist in options for item in sublist] # to make flat list
 
-    # bot.edit_message_reply_markup(message.chat.id, message.id, reply_markup=draw_keyboard(catagory_options))
-
+    bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(options))
 
 
 @bot.callback_query_handler(func=lambda call: True)
