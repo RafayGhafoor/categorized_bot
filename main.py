@@ -13,15 +13,17 @@ sheet = sh.get_worksheet(0)
 header = False
 category_sheet = sh.get_worksheet(1)
 CATEGORY_LAST_UPDATED_TIME = None
+options = None
+POSTS_CACHE = {}
 
 def next_available_row(worksheet):
     str_list = list(filter(None, worksheet.col_values(1)))
     return str(len(str_list)+1)
 
 
-def draw_keyboard(options):
+def draw_keyboard(options, chat_id):
     markup = types.InlineKeyboardMarkup()
-    cmds = [types.InlineKeyboardButton(text=f"{i}", callback_data=f"{i}") for i in options]
+    cmds = [types.InlineKeyboardButton(text=f"{i}", callback_data=f"{i};;{chat_id}") for i in options]
     index = 0
 
     while index < len(cmds):
@@ -41,37 +43,30 @@ def draw_keyboard(options):
 
 
 
-@bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"], chat_types=["supergroup"])
+@bot.message_handler(func=lambda message: True, content_types=['video','text','photo','animation', "sticker"])
 def handle_post(message):
-    global CATEGORY_LAST_UPDATED_TIME
-    is_updated = False
-
-    if CATEGORY_LAST_UPDATED_TIME is None:
-        CATEGORY_LAST_UPDATED_TIME = sh.lastUpdateTime
-        is_updated = True
-
-    elif CATEGORY_LAST_UPDATED_TIME  != sh.lastUpdateTime:
-        CATEGORY_LAST_UPDATED_TIME = sh.lastUpdateTime  
-        is_updated = True
-
-    if is_updated:
-        options = category_sheet.get_all_values()
-        options = [item for sublist in options for item in sublist] # to make flat list
-       
-    
-        bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(options))
+    options = category_sheet.get_all_values()
+    options = [item for sublist in options for item in sublist] # to make flat list
+    bot.send_message(message.chat.id, "Choose a category:", reply_markup=draw_keyboard(options, message.from_user.id))
 
 
 @bot.callback_query_handler(func=lambda call: True)
 def callback_hander(call):
     global header
-    
+
     if call.data:
         user_id = call.from_user.id
         username = call.from_user.username
         first_name = call.from_user.first_name
         group_id = call.message.json["chat"]["id"]
-        catagorey = call.data
+        split_data = call.data.split(';;')
+        catagorey = split_data[0]
+
+        if POSTS_CACHE.get(call.message.id):
+            bot.send_message(call.message.chat.id, POSTS_CACHE.get(call.message.id))
+
+        if user_id != int(split_data[1]) or POSTS_CACHE.get(call.message.id): return
+
         if not header:
             sheet.update('A1:E1', [["user_id", "username", "first_name", "group_id", "category"]])
             sheet.format('A1:F1', {"textFormat": {"bold": True}, "horizontalAlignment": "CENTER"})
@@ -79,6 +74,8 @@ def callback_hander(call):
         next_row = next_available_row(sheet)
         sheet.update(f"A{next_row}:E{next_row}", [[user_id, username, first_name, group_id, catagorey]])
         print("worksheet updated.")
+        bot.send_message(call.message.chat.id,f"Post submitted successfully for {catagorey}")
+        POSTS_CACHE[call.message.id]=f"Post already submitted for {catagorey}"
 
 
 print(bot.get_me())
